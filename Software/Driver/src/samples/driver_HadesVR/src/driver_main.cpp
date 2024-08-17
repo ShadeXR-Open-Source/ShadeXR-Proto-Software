@@ -420,7 +420,7 @@ public:
 			pose.qWorldFromDriverRotation = HmdQuaternion_t{ 1, 0, 0, 0 };
 			pose.qDriverFromHeadRotation = HmdQuaternion_t{ 1, 0, 0, 0 };
 			pose.qRotation = HmdQuaternion_t{ 1, 0, 0, 0 };
-			pose.vecPosition[0] = 0;
+			pose.vecPosition[0] = 0.1*sin((double)std::chrono::duration<double>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
 			pose.vecPosition[1] = 0;
 			pose.vecPosition[2] = 0;
 			pose.result = TrackingResult_Running_OK;
