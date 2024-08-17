@@ -290,16 +290,24 @@ public:
 			else
 			{
 				float projectionLength = 0.25 * m_fDisplayWidth * 1 / tan(m_fFOV / 2);
-				float centerDifference = 0.25 * m_fDisplayWidth - 0.5 * m_fDistanceBetweenViews;
+				//float centerDifference = 0.25 * m_fDisplayWidth - 0.5 * m_fDistanceBetweenViews;
+				float centerDifference = 0.25 * m_fDisplayWidth * (91.0/2 - 23)/(91.0);
+				// I'm trying to maually add these:
+				*pfTop = -25.0 / 15.0;
+				*pfBottom = 25.0 / 15.0;
 				if (eEye == Eye_Left)
 				{
-					*pfLeft = -((0.25 * m_fDisplayWidth + centerDifference) / projectionLength);
-					*pfRight = (0.25 * m_fDisplayWidth - centerDifference) / projectionLength;
+					//*pfLeft = -((0.25 * m_fDisplayWidth + centerDifference) / projectionLength);
+					//*pfRight = (0.25 * m_fDisplayWidth - centerDifference) / projectionLength;
+					*pfLeft = -53.0 / 15.0;
+					*pfRight = 23.0 / 15.0;
 				}
 				else
 				{
-					*pfLeft = -((0.25 * m_fDisplayWidth - centerDifference) / projectionLength);
-					*pfRight = (0.25 * m_fDisplayWidth + centerDifference) / projectionLength;
+					//*pfLeft = -((0.25 * m_fDisplayWidth - centerDifference) / projectionLength);
+					//*pfRight = (0.25 * m_fDisplayWidth + centerDifference) / projectionLength;
+					*pfLeft = -23.0 / 15.0;
+					*pfRight = 53.0 / 15.0;
 				}
 			}
 		}
