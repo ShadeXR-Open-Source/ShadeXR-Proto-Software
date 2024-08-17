@@ -5,6 +5,37 @@ CdataHandler::CdataHandler(DataTransport& transport)
 {
 }
 
+
+void decode_hmd_packet(uint8_t* buf, uint8_t* packetID,
+	int16_t* AccX, int16_t* AccY, int16_t* AccZ,
+	int16_t* GyroX, int16_t* GyroY, int16_t* GyroZ,
+	int16_t* MagX, int16_t* MagY, int16_t* MagZ,
+	uint16_t* HMDData)
+{
+	uint8_t* curptr = buf;
+	*packetID = *curptr++;
+	*AccX = (int16_t)*curptr++ << 8;
+	*AccX |= (int16_t)*curptr++;
+	*AccY = (int16_t)*curptr++ << 8;
+	*AccY |= (int16_t)*curptr++;
+	*AccZ = (int16_t)*curptr++ << 8;
+	*AccZ |= (int16_t)*curptr++;
+	*GyroX = (int16_t)*curptr++ << 8;
+	*GyroX |= (int16_t)*curptr++;
+	*GyroY = (int16_t)*curptr++ << 8;
+	*GyroY |= (int16_t)*curptr++;
+	*GyroZ = (int16_t)*curptr++ << 8;
+	*GyroZ |= (int16_t)*curptr++;
+	*MagX = (int16_t)*curptr++ << 8;
+	*MagX |= (int16_t)*curptr++;
+	*MagY = (int16_t)*curptr++ << 8;
+	*MagY |= (int16_t)*curptr++;
+	*MagZ = (int16_t)*curptr++ << 8;
+	*MagZ |= (int16_t)*curptr++;
+	*HMDData = (uint16_t)*curptr++ << 8;
+	*HMDData |= (uint16_t)*curptr;
+}
+
 /**
 	 Reads Transport data and separates the incoming data packet into HMD, controller or tracker data.
 */
@@ -106,9 +137,10 @@ void CdataHandler::ReadTransportData()
 				break;
 
 			case 3:		//hmd IMU packet
+			{
 				if (!orientationFilterInit) {		//init filter
 					HMDfilter.begin();
-					HMDfilter.setBeta(2.f);
+					HMDfilter.setBeta(10.f);
 
 					if (readsFromInit < 2000) {
 						readsFromInit++;
@@ -117,26 +149,51 @@ void CdataHandler::ReadTransportData()
 						orientationFilterInit = true;
 						ResetPos(true, true);
 					}
-				}			
+				}
 
 				if (readsFromInit >= 2000) {
 					float Av = Vector3::Magnitude(HMDData.TrackingData.AngularVelocity);
 					if (Av > 10.f) Av = 10.f;
-					HMDfilter.setBeta(Av * (maxFilterBeta - minFilterBeta) / 10 + minFilterBeta);
+					//HMDfilter.setBeta(Av * (maxFilterBeta - minFilterBeta) / 10 + minFilterBeta);
+					HMDfilter.setBeta(1.f * (maxFilterBeta - minFilterBeta) / 10 + minFilterBeta);
 				}
+				HMDRAWPacket decpak = { 0 };
+				decode_hmd_packet(packet_buffer+1, &decpak.PacketID, &decpak.AccX, &decpak.AccY, &decpak.AccZ, &decpak.GyroX, &decpak.GyroY, &decpak.GyroZ, &decpak.MagX, &decpak.MagY, &decpak.MagZ, &decpak.HMDData);
 
-				HMDData.TrackingData.Accel.X = (float)(DataHMDRAW->AccX) / 2048;
+				/*HMDData.TrackingData.Accel.X = (float)(DataHMDRAW->AccX) / 2048;
 				HMDData.TrackingData.Accel.Y = (float)(DataHMDRAW->AccY) / 2048;
 				HMDData.TrackingData.Accel.Z = (float)(DataHMDRAW->AccZ) / 2048;
 
 				HMDData.TrackingData.AngularAccel.X = (float)(DataHMDRAW->GyroY) / 16;
 				HMDData.TrackingData.AngularAccel.Y = (float)(DataHMDRAW->GyroX) / 16;
-				HMDData.TrackingData.AngularAccel.Z = (float)(DataHMDRAW->GyroZ) / 16;
+				HMDData.TrackingData.AngularAccel.Z = (float)(DataHMDRAW->GyroZ) / 16;*/
+				HMDData.TrackingData.Accel.X = (float)(decpak.AccX) / 2048;
+				HMDData.TrackingData.Accel.Y = (float)(decpak.AccY) / 2048;
+				HMDData.TrackingData.Accel.Z = (float)(decpak.AccZ) / 2048;
+
+				HMDData.TrackingData.AngularAccel.X = (float)(decpak.GyroY) / 16;
+				HMDData.TrackingData.AngularAccel.Y = (float)(decpak.GyroX) / 16;
+				HMDData.TrackingData.AngularAccel.Z = (float)(decpak.GyroZ) / 16;
+				//FILE* df = fopen("testlog.txt", "a");
+				////fprintf(df, "accx:%d. accy:%d. accz:%d. gyrox:%d. gyroy:%d. gyroz:%d.\r\n", decpak.AccX, decpak.AccY, decpak.AccZ, decpak.GyroX, decpak.GyroY, decpak.GyroZ);
+				//fprintf(df, "ax:%x %x. ay:%x %x. az:%x %x. gx:%x %x. gy:%x %x. gz:%x %x.\r\n",
+				//	packet_buffer[1], packet_buffer[2], packet_buffer[3], packet_buffer[4], packet_buffer[5], packet_buffer[6],
+				//	packet_buffer[7], packet_buffer[8], packet_buffer[9], packet_buffer[10], packet_buffer[11], packet_buffer[12]);
+				//fclose(df);
 
 				//get data and scale it properly. Then update the filter.
-				HMDfilter.update((float)(DataHMDRAW->GyroX / 16), (float)(DataHMDRAW->GyroY / 16), (float)(DataHMDRAW->GyroZ / 16), 
+				/*
+				HMDfilter.update((float)(DataHMDRAW->GyroX / 16), (float)(DataHMDRAW->GyroY / 16), (float)(DataHMDRAW->GyroZ / 16),
 					(float)(DataHMDRAW->AccX) / 2048, (float)(DataHMDRAW->AccY) / 2048, (float)(DataHMDRAW->AccZ) / 2048,
-					(float)(DataHMDRAW->MagX / 5), (float)(DataHMDRAW->MagY / 5), (float)(DataHMDRAW->MagZ / 5));
+					(float)(DataHMDRAW->MagX / 5), (float)(DataHMDRAW->MagY / 5), (float)(DataHMDRAW->MagZ / 5));*/
+					/*HMDfilter.update((float)(DataHMDRAW->GyroX) / 16, (float)(DataHMDRAW->GyroY) / 16, (float)(DataHMDRAW->GyroZ) / 16,
+						(float)(DataHMDRAW->AccX) / 2048, (float)(DataHMDRAW->AccY) / 2048, (float)(DataHMDRAW->AccZ) / 2048,
+						(float)(DataHMDRAW->MagX / 5), (float)(DataHMDRAW->MagY / 5), (float)(DataHMDRAW->MagZ / 5));*/
+				uint64_t debug_curtime = (uint64_t)((double)std::chrono::duration<double>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+				int debug_gyroz = (debug_curtime % 2 == 0) ? 0 : 256;
+				HMDfilter.update((float)(decpak.GyroX) / 16, (float)(decpak.GyroY) / 16, (float)(decpak.GyroZ) / 16,
+					(float)(decpak.AccX) / 2048, (float)(decpak.AccY) / 2048, (float)(decpak.AccZ) / 2048,
+					0.f, 0.f, 0.f);
 
 				//Apply rotation to the HMD
 				HMDData.TrackingData.RawRotation = HMDfilter.getQuat();
@@ -165,6 +222,7 @@ void CdataHandler::ReadTransportData()
 				TrackerRightData.Rotation.Z = (float)(DataHMDRAW->tracker3_QuatZ) / 32767;
 				TrackerRightData.vBat = (float)(DataHMDRAW->tracker3_vBat) / 255;
 				break;
+			}
 			}
 		}
 		//std::this_thread::sleep_for(std::chrono::milliseconds(1));	//max USB HID update rate is 1000hz.
