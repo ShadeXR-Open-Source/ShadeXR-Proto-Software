@@ -50,6 +50,11 @@ int UARTTransport::Start()
     dcbSerialParams.ByteSize = 8;
     dcbSerialParams.StopBits = ONESTOPBIT;
     dcbSerialParams.Parity = NOPARITY;
+    dcbSerialParams.fDtrControl = DTR_CONTROL_ENABLE;
+    dcbSerialParams.fRtsControl = RTS_CONTROL_ENABLE;
+    dcbSerialParams.fOutxCtsFlow = false;
+    dcbSerialParams.fOutX = false;
+    dcbSerialParams.fInX = false;
     if (SetCommState(hSerial, &dcbSerialParams) == 0) {
         DriverLog("[UARTTransport] Error setting device parameters");
         CloseHandle(hSerial);
